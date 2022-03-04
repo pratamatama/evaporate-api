@@ -27,6 +27,8 @@ class RegisterRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
             'password' => ['required', 'confirmed'],
+            'tos_agreed' => ['required', 'boolean'],
+            'subscribe_newsletter' => ['boolean'],
         ];
     }
 }
