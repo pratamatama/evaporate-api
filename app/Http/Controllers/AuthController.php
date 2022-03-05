@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -40,5 +42,36 @@ class AuthController extends Controller
 
         $user = User::create($data);
         return response()->json($user, 201);
+    }
+
+    public function googleCallback(Request $request)
+    {
+        $socialite = Socialite::driver('google')->redirectUrl($request->redirect_uri);
+
+        $response = $socialite->getAccessTokenResponse($request->code);
+
+        $googleUser = $socialite->userFromToken($response['access_token']);
+
+        $user = User::where('google_id', $googleUser->getId())->first();
+
+        if ($user) {
+            $user->update([
+                'google_token' => $googleUser->token,
+                'google_refresh_token' => $googleUser->refreshToken,
+            ]);
+        } else {
+            $user = User::create([
+                'name' => $googleUser->getName(),
+                'email' => $googleUser->getEmail(),
+                'email_verified_at' => now(),
+                'avatar' => $googleUser->getAvatar(),
+                'google_id' => $googleUser->getId(),
+                'google_token' => $googleUser->token,
+                'google_refresh_token' => $googleUser->refreshToken,
+                'tos_agreed' => true,
+            ]);
+        }
+
+        return $user->createToken('google')->plainTextToken;
     }
 }
